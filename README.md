@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Application Portal
+
+A full-stack job application portal built with Next.js, TypeScript, Prisma, and SQLite.
+
+## Features
+
+### Job Seekers
+- Sign up and log in
+- Create and edit profile (skills, experience, resume)
+- Browse job listings
+- Apply to jobs with resume and cover letter
+- View submitted applications
+
+### Employers
+- Sign up and log in
+- Post new job listings
+- View own job postings
+- View applicants for each job
+- Review resumes and cover letters
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 (App Router), TypeScript, TailwindCSS, shadcn/ui
+- **Backend**: Next.js API routes
+- **Database**: Prisma ORM with SQLite
+- **Authentication**: NextAuth.js (Credentials provider)
+- **File Storage**: Local file storage for resumes
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- npm or yarn package manager
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd JobApp
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create a `.env` file in the root directory:
+```env
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Important**: Replace `your-secret-key-change-this-in-production` with a random string. You can generate one using:
+```bash
+openssl rand -base64 32
+```
 
-## Learn More
+4. Initialize the database:
+```bash
+npm run db:setup
+```
+This will generate the Prisma client and create the database schema.
 
-To learn more about Next.js, take a look at the following resources:
+5. Run the development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Note:** The uploads directory (`public/uploads/resumes`) is created automatically when needed, but you can create it manually if you prefer.
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+JobApp/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── seeker/            # Job seeker pages
+│   ├── employer/          # Employer pages
+│   └── page.tsx           # Landing page
+├── components/            # React components
+│   ├── ui/                # shadcn/ui components
+│   ├── seeker/            # Seeker-specific components
+│   └── employer/          # Employer-specific components
+├── lib/                   # Utility functions
+│   ├── auth.ts            # NextAuth configuration
+│   ├── prisma.ts          # Prisma client
+│   └── utils.ts           # Utility functions
+├── prisma/                # Prisma schema
+│   └── schema.prisma      # Database schema
+└── public/                # Static files
+    └── uploads/           # Uploaded files (resumes)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Schema
+
+- **User**: Stores user accounts (seekers and employers)
+- **Job**: Stores job postings
+- **Application**: Stores job applications
+- **Profile**: Stores job seeker profiles
+
+## Deployment
+
+### Vercel
+
+1. Push your code to GitHub
+2. Import your repository to Vercel
+3. Add environment variables:
+   - `DATABASE_URL`: Your database URL (SQLite works on Vercel)
+   - `NEXTAUTH_SECRET`: Your secret key
+   - `NEXTAUTH_URL`: Your production URL
+4. Deploy
+
+### Database Migration
+
+For production, you may want to use PostgreSQL instead of SQLite:
+
+1. Update `prisma/schema.prisma`:
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+2. Update your `DATABASE_URL` in Vercel to point to your PostgreSQL database
+3. Run migrations:
+```bash
+npx prisma migrate deploy
+```
+
+## Environment Variables
+
+- `DATABASE_URL`: Database connection string
+- `NEXTAUTH_SECRET`: Secret key for NextAuth (generate a random string)
+- `NEXTAUTH_URL`: Base URL of your application
+
+## License
+
+MIT

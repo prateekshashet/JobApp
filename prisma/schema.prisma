@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SEEKER
+  EMPLOYER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  jobs         Job[]
+  applications Application[]
+  profile      Profile?
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  company     String
+  location    String
+  salary      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  employerId  String
+  employer    User     @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  // Relations
+  applications Application[]
+}
+
+model Application {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  seekerId    String
+  seeker      User     @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+  resumeUrl   String?
+  coverLetter String?
+  createdAt   DateTime @default(now())
+
+  @@unique([jobId, seekerId])
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills     String?
+  experience String?
+  resumeUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
