@@ -9,8 +9,9 @@ import { notFound } from "next/navigation"
 export default async function ApplyPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const session = await getServerSession(authOptions)
 
   if (!session || session.user.role !== "SEEKER") {
@@ -19,7 +20,7 @@ export default async function ApplyPage({
 
   const job = await prisma.job.findUnique({
     where: {
-      id: params.id,
+      id,
     },
     include: {
       employer: true,
@@ -34,7 +35,7 @@ export default async function ApplyPage({
   const existingApplication = await prisma.application.findUnique({
     where: {
       jobId_seekerId: {
-        jobId: params.id,
+        jobId: id,
         seekerId: session.user.id,
       },
     },

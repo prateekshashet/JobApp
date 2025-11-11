@@ -11,17 +11,22 @@ import { notFound } from "next/navigation"
 export default async function JobDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id?: string }>
 }) {
+  const { id } = await params
   const session = await getServerSession(authOptions)
 
   if (!session || session.user.role !== "EMPLOYER") {
     redirect("/auth/login?role=EMPLOYER")
   }
 
+  if (!id) {
+    notFound()
+  }
+
   const job = await prisma.job.findUnique({
     where: {
-      id: params.id,
+      id,
     },
     include: {
       applications: true,
