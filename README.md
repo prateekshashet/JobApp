@@ -1,6 +1,6 @@
 # Job Application Portal
 
-A full-stack job application portal built with Next.js, TypeScript, Prisma, and SQLite.
+A full-stack job application portal built with Next.js, TypeScript, Prisma, and MongoDB Atlas.
 
 ## Features
 
@@ -22,9 +22,9 @@ A full-stack job application portal built with Next.js, TypeScript, Prisma, and 
 
 - **Frontend**: Next.js 16 (App Router), TypeScript, TailwindCSS, shadcn/ui
 - **Backend**: Next.js API routes
-- **Database**: Prisma ORM with SQLite
+- **Database**: Prisma ORM with MongoDB Atlas
 - **Authentication**: NextAuth.js (Credentials provider)
-- **File Storage**: Local file storage for resumes
+- **File Storage**: AWS S3 (with automatic local fallback for development)
 
 ## Getting Started
 
@@ -46,9 +46,9 @@ cd JobApp
 npm install
 ```
 
-3. Create a `.env` file in the root directory:
+3. Create a `.env` file in the root directory for local development:
 ```env
-DATABASE_URL="file:./dev.db"
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority"
 NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
 NEXTAUTH_URL="http://localhost:3000"
 ```
@@ -58,11 +58,11 @@ NEXTAUTH_URL="http://localhost:3000"
 openssl rand -base64 32
 ```
 
-4. Initialize the database:
+4. Sync the database schema:
 ```bash
-npm run db:setup
+npm run db:sync
 ```
-This will generate the Prisma client and create the database schema.
+This will generate the Prisma client and push the schema to your MongoDB cluster.
 
 5. Run the development server:
 ```bash
@@ -71,7 +71,7 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**Note:** The uploads directory (`public/uploads/resumes`) is created automatically when needed, but you can create it manually if you prefer.
+**Note:** In development, resume uploads fall back to `public/uploads/resumes`. Production deployments must use the S3 configuration described below.
 
 ## Project Structure
 
@@ -106,39 +106,86 @@ JobApp/
 
 ## Deployment
 
-### Vercel
+### Render (Single Service with MongoDB Atlas)
 
-1. Push your code to GitHub
-2. Import your repository to Vercel
-3. Add environment variables:
-   - `DATABASE_URL`: Your database URL (SQLite works on Vercel)
-   - `NEXTAUTH_SECRET`: Your secret key
-   - `NEXTAUTH_URL`: Your production URL
-4. Deploy
+Follow these steps when you are ready to deploy the full-stack Next.js service on Render backed by MongoDB Atlas.
+
+#### 0. Local prerequisites (commit before deploying)
+
+1. Ensure `prisma/schema.prisma` uses MongoDB:
+   ```prisma
+   datasource db {
+     provider = "mongodb"
+     url      = env("MONGODB_URI")
+   }
+   ```
+2. Confirm the `package.json` scripts include:
+   ```json
+   {
+     "postinstall": "prisma generate",
+     "db:sync": "prisma db push",
+     "build": "next build",
+     "start": "next start -p $PORT"
+   }
+   ```
+3. Keep your `.env` up to date locally and run `npm run db:sync` once to verify.
+4. Commit and push all changes to GitHub.
+
+#### 1. Configure MongoDB Atlas
+
+1. In **Network Access**, allow `0.0.0.0/0` for quick testing (later replace with Render static outbound IPs if you add that paid add-on).
+2. Copy the **Node.js** connection string from Atlas:
+   ```
+   mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority
+   ```
+   - URL-encode the password if it contains special characters (PowerShell example: `[System.Web.HttpUtility]::UrlEncode("your-password")`).
+3. Use that string for the `MONGODB_URI` environment variable.
+
+#### 2. Create the Render Web Service
+
+1. On Render, select **New → Web Service**, choose your Git repository, and set the environment to **Node** with a region close to your users.
+2. Set environment variables:
+   - `MONGODB_URI` = the Atlas URI from step 1.
+   - `NEXTAUTH_URL` = `https://<your-service>.onrender.com` (or your custom domain).
+   - `NEXTAUTH_SECRET` = a 32+ character random string (`openssl rand -base64 32`).
+   - `NODE_ENV` = `production`.
+   - `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PUBLIC_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` for resume uploads.
+3. Build Command: `npm run db:sync && npm run build`
+4. Start Command: `npm run start`
+5. Deploy the service. Render runs `db:sync` during the build to align your Prisma schema with MongoDB.
+
+After the first deploy, visit the Render URL to verify authentication, job posting, and application flows. If you later restrict Atlas network access, remember to allowlist Render’s static outbound IPs or a VPC peering option.
 
 ### Database Migration
 
-For production, you may want to use PostgreSQL instead of SQLite:
+Push the schema against the hosted database from your machine:
 
-1. Update `prisma/schema.prisma`:
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-2. Update your `DATABASE_URL` in Vercel to point to your PostgreSQL database
-3. Run migrations:
 ```bash
-npx prisma migrate deploy
+npm install
+npx prisma generate
+npx prisma db push
 ```
+
+
+
+### Resume Storage Configuration
+
+In production, resumes are uploaded directly to S3 via presigned URLs. Ensure the AWS environment variables above are set. Without them the API falls back to storing files locally, which is only suitable for development.
 
 ## Environment Variables
 
-- `DATABASE_URL`: Database connection string
-- `NEXTAUTH_SECRET`: Secret key for NextAuth (generate a random string)
-- `NEXTAUTH_URL`: Base URL of your application
+| Variable | Description |
+| --- | --- |
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `NEXTAUTH_SECRET` | Secret key for NextAuth (generate with `openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | Base URL of your app (http://localhost:3000 locally, Vercel URL in prod) |
+| `AWS_REGION` | AWS region for your S3 bucket |
+| `AWS_S3_BUCKET` | Name of the S3 bucket for resumes |
+| `AWS_S3_PUBLIC_URL` | Public base URL for serving uploaded resumes |
+| `AWS_ACCESS_KEY_ID` | AWS access key with write permissions to the bucket |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key |
+
+If you use OAuth providers with NextAuth, also add their respective client IDs and secrets.
 
 ## License
 

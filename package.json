@@ -5,13 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
+    "db:sync": "prisma db push",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:setup": "prisma generate && prisma db push"
+    "db:setup": "prisma generate && prisma db push",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.928.0",
+    "@aws-sdk/s3-request-presigner": "^3.928.0",
     "@prisma/client": "^6.19.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

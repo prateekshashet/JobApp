@@ -37,20 +37,59 @@ export function ApplyForm({ jobId, profile }: ApplyFormProps) {
 
       // Upload resume if a new file is provided or if no resume exists
       if (resumeFile) {
-        const formData = new FormData()
-        formData.append("resume", resumeFile)
-
-        const uploadResponse = await fetch("/api/upload/resume", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload resume")
+        if (resumeFile.type !== "application/pdf") {
+          throw new Error("Resume must be a PDF file")
         }
 
-        const uploadData = await uploadResponse.json()
-        resumeUrl = uploadData.url
+        const presignResponse = await fetch("/api/upload/resume", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contentType: resumeFile.type,
+            fileName: resumeFile.name,
+          }),
+        })
+
+        if (!presignResponse.ok) {
+          throw new Error("Failed to prepare resume upload")
+        }
+
+        const presignPayload = await presignResponse.json()
+
+        if (presignPayload.strategy === "s3") {
+          const s3Response = await fetch(presignPayload.uploadUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": resumeFile.type,
+            },
+            body: resumeFile,
+          })
+
+          if (!s3Response.ok) {
+            throw new Error("Failed to upload resume to storage")
+          }
+
+          resumeUrl = presignPayload.fileUrl as string
+        } else if (presignPayload.strategy === "local") {
+          const formData = new FormData()
+          formData.append("resume", resumeFile)
+
+          const uploadResponse = await fetch("/api/upload/resume", {
+            method: "POST",
+            body: formData,
+          })
+
+          if (!uploadResponse.ok) {
+            throw new Error("Failed to upload resume")
+          }
+
+          const uploadData = await uploadResponse.json()
+          resumeUrl = uploadData.url as string
+        } else {
+          throw new Error("Unsupported upload strategy")
+        }
       }
 
       if (!resumeUrl) {
