@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: jobapp
+    env: node
+    buildCommand: npm install && npm run db:sync && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
+      - key: YARN_PRODUCTION
+        value: false
