@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { buildResumeLink } from "@/lib/resume-links"
 
 export default async function EmployerApplicants() {
   const session = await getServerSession(authOptions)
@@ -76,42 +77,46 @@ export default async function EmployerApplicants() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {applications.map((application) => (
-                      <div
-                        key={application.id}
-                        className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg">
-                              {application.seeker.name}
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">
-                              {application.seeker.email}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-2">
-                              Applied on{" "}
-                              {new Date(application.createdAt).toLocaleDateString()}
-                            </p>
-                            {application.resumeUrl && (
-                              <a
-                                href={application.resumeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                              >
-                                View Resume
-                              </a>
-                            )}
+                    {applications.map((application) => {
+                      const resumeLink = buildResumeLink(application.resumeUrl)
+
+                      return (
+                        <div
+                          key={application.id}
+                          className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg">
+                                {application.seeker.name}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {application.seeker.email}
+                              </p>
+                              <p className="text-sm text-gray-500 mt-2">
+                                Applied on{" "}
+                                {new Date(application.createdAt).toLocaleDateString()}
+                              </p>
+                              {resumeLink && (
+                                <a
+                                  href={resumeLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+                                >
+                                  View Resume
+                                </a>
+                              )}
+                            </div>
+                            <Link href={`/employer/jobs/${job.id}/applicants`}>
+                              <Button variant="outline" size="sm">
+                                View Details
+                              </Button>
+                            </Link>
                           </div>
-                          <Link href={`/employer/jobs/${job.id}/applicants`}>
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </Link>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   <div className="mt-4">
                     <Link href={`/employer/jobs/${job.id}/applicants`}>

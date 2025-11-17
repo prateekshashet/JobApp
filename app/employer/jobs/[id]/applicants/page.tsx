@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { buildResumeLink } from "@/lib/resume-links"
 
 export default async function JobApplicantsPage({
   params,
@@ -110,18 +111,22 @@ export default async function JobApplicantsPage({
                         </p>
                       </div>
                     )}
-                    {application.resumeUrl && (
-                      <div>
-                        <a
-                          href={application.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          View Resume
-                        </a>
-                      </div>
-                    )}
+                    {(() => {
+                      const resumeLink = buildResumeLink(application.resumeUrl)
+                      if (!resumeLink) return null
+                      return (
+                        <div>
+                          <a
+                            href={resumeLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            View Resume
+                          </a>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </CardContent>
               </Card>

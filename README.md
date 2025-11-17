@@ -24,7 +24,7 @@ A full-stack job application portal built with Next.js, TypeScript, Prisma, and 
 - **Backend**: Next.js API routes
 - **Database**: Prisma ORM with MongoDB Atlas
 - **Authentication**: NextAuth.js (Credentials provider)
-- **File Storage**: AWS S3 (with automatic local fallback for development)
+- **File Storage**: Cloudinary in production with automatic local filesystem fallback for development
 
 ## Getting Started
 
@@ -51,6 +51,11 @@ npm install
 MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority"
 NEXTAUTH_SECRET="your-secret-key-change-this-in-production"
 NEXTAUTH_URL="http://localhost:3000"
+# The following Cloudinary variables are optional locally. If omitted, uploads fall back to public/uploads/resumes
+# CLOUDINARY_CLOUD_NAME="your-cloud-name"
+# CLOUDINARY_API_KEY="your-api-key"
+# CLOUDINARY_API_SECRET="your-api-secret"
+# CLOUDINARY_FOLDER="optional-folder-name"
 ```
 
 **Important**: Replace `your-secret-key-change-this-in-production` with a random string. You can generate one using:
@@ -71,7 +76,7 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-**Note:** In development, resume uploads fall back to `public/uploads/resumes`. Production deployments must use the S3 configuration described below.
+**Note:** In development, resume uploads fall back to `public/uploads/resumes` when Cloudinary credentials are not provided. Production deployments should configure Cloudinary as described below.
 
 ## Project Structure
 
@@ -149,7 +154,7 @@ Follow these steps when you are ready to deploy the full-stack Next.js service o
    - `NEXTAUTH_URL` = `https://<your-service>.onrender.com` (or your custom domain).
    - `NEXTAUTH_SECRET` = a 32+ character random string (`openssl rand -base64 32`).
    - `NODE_ENV` = `production`.
-   - `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PUBLIC_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` for resume uploads.
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, and optionally `CLOUDINARY_FOLDER` for resume uploads.
 3. Build Command: `npm run db:sync && npm run build`
 4. Start Command: `npm run start`
 5. Deploy the service. Render runs `db:sync` during the build to align your Prisma schema with MongoDB.
@@ -170,7 +175,7 @@ npx prisma db push
 
 ### Resume Storage Configuration
 
-In production, resumes are uploaded directly to S3 via presigned URLs. Ensure the AWS environment variables above are set. Without them the API falls back to storing files locally, which is only suitable for development.
+In production, resumes are uploaded to Cloudinary. Set the Cloudinary variables above in your Render environment. Without them the API falls back to storing files under `public/uploads/resumes`, which is intended only for local development.
 
 ## Environment Variables
 
@@ -179,11 +184,10 @@ In production, resumes are uploaded directly to S3 via presigned URLs. Ensure th
 | `MONGODB_URI` | MongoDB Atlas connection string |
 | `NEXTAUTH_SECRET` | Secret key for NextAuth (generate with `openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | Base URL of your app (http://localhost:3000 locally, Vercel URL in prod) |
-| `AWS_REGION` | AWS region for your S3 bucket |
-| `AWS_S3_BUCKET` | Name of the S3 bucket for resumes |
-| `AWS_S3_PUBLIC_URL` | Public base URL for serving uploaded resumes |
-| `AWS_ACCESS_KEY_ID` | AWS access key with write permissions to the bucket |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret access key |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name (required in production) |
+| `CLOUDINARY_API_KEY` | Cloudinary API key (required in production) |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret (required in production) |
+| `CLOUDINARY_FOLDER` | Optional Cloudinary folder for organizing uploads |
 
 If you use OAuth providers with NextAuth, also add their respective client IDs and secrets.
 

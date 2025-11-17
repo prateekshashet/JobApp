@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { buildResumeLink } from "@/lib/resume-links"
 
 export default async function SeekerApplications() {
   const session = await getServerSession(authOptions)
@@ -83,16 +84,22 @@ export default async function SeekerApplications() {
                         </p>
                       </div>
                     )}
-                    {application.resumeUrl && (
+                    {buildResumeLink(application.resumeUrl) && (
                       <div>
+                        {(() => {
+                          const resumeLink = buildResumeLink(application.resumeUrl)
+                          if (!resumeLink) return null
+                          return (
                         <a
-                          href={application.resumeUrl}
+                          href={resumeLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline"
                         >
                           View Resume
                         </a>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>

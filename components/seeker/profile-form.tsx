@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { buildResumeLink } from "@/lib/resume-links"
 import { useRouter } from "next/navigation"
 
 interface ProfileFormProps {
@@ -50,54 +51,30 @@ export function ProfileForm({ profile, userName, userEmail }: ProfileFormProps) 
           throw new Error("Resume must be a PDF file")
         }
 
-        const presignResponse = await fetch("/api/upload/resume", {
+        const formData = new FormData()
+        formData.append("resume", resumeFile)
+        formData.append("name", userName)
+        formData.append("email", userEmail)
+
+        const uploadResponse = await fetch("/api/upload/resume", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contentType: resumeFile.type,
-            fileName: resumeFile.name,
-          }),
+          body: formData,
         })
 
-        if (!presignResponse.ok) {
-          throw new Error("Failed to prepare resume upload")
+        if (!uploadResponse.ok) {
+          const errorBody = await uploadResponse.json().catch(() => null)
+          throw new Error(errorBody?.error || "Failed to upload resume")
         }
 
-        const presignPayload = await presignResponse.json()
+        const uploadData = await uploadResponse.json()
+        finalResumeUrl =
+          uploadData.publicUrl ||
+          uploadData.secureUrl ||
+          uploadData.secure_url ||
+          ""
 
-        if (presignPayload.strategy === "s3") {
-          const s3Response = await fetch(presignPayload.uploadUrl, {
-            method: "PUT",
-            headers: {
-              "Content-Type": resumeFile.type,
-            },
-            body: resumeFile,
-          })
-
-          if (!s3Response.ok) {
-            throw new Error("Failed to upload resume to storage")
-          }
-
-          finalResumeUrl = presignPayload.fileUrl as string
-        } else if (presignPayload.strategy === "local") {
-          const formData = new FormData()
-          formData.append("resume", resumeFile)
-
-          const uploadResponse = await fetch("/api/upload/resume", {
-            method: "POST",
-            body: formData,
-          })
-
-          if (!uploadResponse.ok) {
-            throw new Error("Failed to upload resume")
-          }
-
-          const uploadData = await uploadResponse.json()
-          finalResumeUrl = uploadData.url as string
-        } else {
-          throw new Error("Unsupported upload strategy")
+        if (!finalResumeUrl) {
+          throw new Error("Upload succeeded but no file URL was returned")
         }
       }
 
@@ -135,6 +112,8 @@ export function ProfileForm({ profile, userName, userEmail }: ProfileFormProps) 
       setLoading(false)
     }
   }
+
+  const resumeLink = buildResumeLink(resumeUrl)
 
   return (
     <Card>
@@ -183,11 +162,11 @@ export function ProfileForm({ profile, userName, userEmail }: ProfileFormProps) 
               accept=".pdf"
               onChange={handleFileChange}
             />
-            {resumeUrl && !resumeFile && (
+            {resumeLink && !resumeFile && (
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Current resume:{" "}
                 <a
-                  href={resumeUrl}
+                  href={resumeLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
